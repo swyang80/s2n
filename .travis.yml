@@ -12,9 +12,11 @@ addons:
     apt:
       sources:
         - ubuntu-toolchain-r-test
+	- debian-sid
       packages:
         - indent
         - kwstyle
+	- shellcheck
 
 osx_image: xcode8
 
