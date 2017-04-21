@@ -12,7 +12,6 @@ addons:
     apt:
       sources:
         - ubuntu-toolchain-r-test
-        - debian-sid
       packages:
         - indent
         - kwstyle
@@ -90,6 +89,7 @@ before_install:
   - export LIBRESSL_INSTALL_DIR=`pwd`/test-deps/libressl
   - export CPPCHECK_INSTALL_DIR=`pwd`/test-deps/cppcheck
   - export CTVERIF_INSTALL_DIR=`pwd`/test-deps/ctverif
+
 
 # Install missing test dependencies. If the install directory already exists, cached artifacts will be used
 # for that dependency.
