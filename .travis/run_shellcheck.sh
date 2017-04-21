@@ -14,4 +14,8 @@
 #
 
 # simple test to see if ShellCheck works within Travis CI
-shellcheck ./*.sh  
+
+SCRIPT_FILES=`find $PWD -type f -name "*.sh"`
+
+for file in $SCRIPT_FILES; do shellcheck $file; done
+
