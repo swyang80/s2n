@@ -14,4 +14,4 @@
 #
 
 # simple test to see if ShellCheck works within Travis CI
-shellcheck *.sh  
+shellcheck ./*.sh  
