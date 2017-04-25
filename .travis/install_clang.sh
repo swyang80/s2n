@@ -28,8 +28,8 @@ CLANG_DOWNLOAD_DIR=$1
 CLANG_INSTALL_DIR=$2
 PLATFORM=$3
 
-mkdir -p $CLANG_DOWNLOAD_DIR
-cd $CLANG_DOWNLOAD_DIR
+mkdir -p "$CLANG_DOWNLOAD_DIR"
+cd "$CLANG_DOWNLOAD_DIR"
 
 if [ "$PLATFORM" == "linux" ]; then
 	# The Certificate used by chromium.googlesource.com is not in the default CA
@@ -43,20 +43,22 @@ GIT_CURL_VERBOSE=1
 echo "Downloading Clang..."
 git clone https://chromium.googlesource.com/chromium/src/tools/clang
 
-cd clang
+(
+cd clang || exit 
 # Reset to known working version of Clang
 git reset --hard e96a7b48d35ab6a268c8372048781cdec903a794
 cd ..
+)
 
 echo "Updating Clang..."
-$CLANG_DOWNLOAD_DIR/clang/scripts/update.py
+"$CLANG_DOWNLOAD_DIR"/clang/scripts/update.py
 
 # "third_party" directory is created above $CLANG_DOWNLOAD_DIR after running 
 # update, move it into $CLANG_DOWNLOAD_DIR once update is complete.
-mv ../third_party $CLANG_DOWNLOAD_DIR
+mv ../third_party "$CLANG_DOWNLOAD_DIR"
 
 echo "Installed Clang Version: "
-$CLANG_DOWNLOAD_DIR/third_party/llvm-build/Release+Asserts/bin/clang --version
+"$CLANG_DOWNLOAD_DIR"/third_party/llvm-build/Release+Asserts/bin/clang --version
 
-mkdir -p $CLANG_INSTALL_DIR && cp -rf $CLANG_DOWNLOAD_DIR/third_party/llvm-build/Release+Asserts/* $CLANG_INSTALL_DIR
+mkdir -p "$CLANG_INSTALL_DIR" && cp -rf "$CLANG_DOWNLOAD_DIR"/third_party/llvm-build/Release+Asserts/* "$CLANG_INSTALL_DIR"
 
