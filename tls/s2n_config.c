@@ -517,10 +517,12 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct
     notnull_check(config->cert_and_key_pairs);
     //notnull_check(config->domain_name_to_cert_map);
     notnull_check(cert_key_pair);
+    if (s2n_array_num_elements(config->cert_and_key_pairs) == 0) {
+        struct s2n_cert_chain_and_key **to_insert = s2n_array_add(config->cert_and_key_pairs);
+        notnull_check(to_insert);
+        *to_insert = cert_key_pair;
+    }
 
-    struct s2n_cert_chain_and_key **to_insert = s2n_array_add(config->cert_and_key_pairs);
-    notnull_check(to_insert);
-    *to_insert = cert_key_pair;
     //GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
     s2n_authentication_method cert_auth_method = s2n_cert_chain_and_key_get_auth_method(cert_key_pair);
     if (config->use_map_for_multi_cert_lookup) {
