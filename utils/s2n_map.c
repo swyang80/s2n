@@ -210,6 +210,9 @@ int s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *v
 
 int s2n_map_free(struct s2n_map *map)
 {
+    if (!map) {
+        return 0;
+    }
     /* Free the keys and values */
     for (int i = 0; i < map->capacity; i++) {
         if (map->table[i].key.size) {

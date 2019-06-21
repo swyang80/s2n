@@ -197,11 +197,42 @@ int s2n_create_wildcard_hostname(struct s2n_stuffer *hostname_stuffer, struct s2
     return 0;
 }
 
-static int s2n_find_cert_matches(struct s2n_map *domain_name_to_cert_map,
+static int s2n_find_cert_matches(struct s2n_config *config,
         struct s2n_blob *dns_name,
         struct s2n_cert_chain_and_key *matches[S2N_AUTHENTICATION_METHOD_SENTINEL],
         uint8_t *match_exists)
 {
+    if(!config->use_map_for_multi_cert_lookup) {
+        struct auth_method_to_cert_value *default_certs = &config->default_cert_per_auth_method;
+        for (int i = 0; i < S2N_AUTHENTICATION_METHOD_SENTINEL; i++) {
+            struct s2n_cert_chain_and_key *cert = default_certs->certs[i];
+            if(cert == NULL) {
+                continue;
+            }
+            if (s2n_array_num_elements(cert->san_names)) {
+                for (int j = 0; j < s2n_array_num_elements(cert->san_names); j++) {
+                    struct s2n_blob *domain_name = s2n_array_get(cert->san_names, j);
+                    if ((dns_name->size == domain_name->size) && (strncmp((const char *) dns_name->data, (const char *) domain_name->data, domain_name->size) == 0)) {
+                        matches[i] = cert;
+                        *match_exists = 1;
+                        break;
+                    }
+                }
+            } else {
+                for (int j = 0; j < s2n_array_num_elements(cert->cn_names); j++) {
+                    struct s2n_blob *domain_name = s2n_array_get(cert->cn_names, j);
+                    if ((dns_name->size == domain_name->size) && (strncmp((const char *) dns_name->data, (const char *) domain_name->data, domain_name->size) == 0)) {
+                        matches[i] = cert;
+                        *match_exists = 1;
+                        break;
+                    }
+                }
+            }
+            
+        }
+        return 0;
+    }
+    struct s2n_map *domain_name_to_cert_map = config->domain_name_to_cert_map;
     struct s2n_blob map_value;
     if (s2n_map_lookup(domain_name_to_cert_map, dns_name, &map_value) == 1) {
         struct auth_method_to_cert_value *value = (void *) map_value.data;
@@ -238,7 +269,7 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
     GUARD(s2n_stuffer_skip_write(&normalized_hostname_stuffer, normalized_name.size));
 
     /* Find the exact matches for the ServerName */
-    GUARD(s2n_find_cert_matches(conn->config->domain_name_to_cert_map,
+    GUARD(s2n_find_cert_matches(conn->config,
                 &normalized_name,
                 conn->handshake_params.exact_sni_matches,
                 &(conn->handshake_params.exact_sni_match_exists)));
@@ -259,7 +290,7 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
 
         /* The client's SNI is wildcardified, do an exact match against the set of server certs. */
         wildcard_blob.size = wildcard_len;
-        GUARD(s2n_find_cert_matches(conn->config->domain_name_to_cert_map,
+        GUARD(s2n_find_cert_matches(conn->config,
                     &wildcard_blob,
                     conn->handshake_params.wc_sni_matches,
                     &(conn->handshake_params.wc_sni_match_exists)));
