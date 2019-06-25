@@ -57,8 +57,9 @@ int main(int argc, char **argv)
     /* Done with the empty map */
     EXPECT_SUCCESS(s2n_map_free(empty));
 
-    /* Expect failure since initial map size is zero */
+    /* Expect failure since initial map size is less than 2 */
     EXPECT_NULL(map = s2n_map_new_with_initial_size(0));
+    EXPECT_NULL(map = s2n_map_new_with_initial_size(1));
 
     /* Create map with small size */
     EXPECT_NOT_NULL(map = s2n_map_new_with_initial_size(2));
