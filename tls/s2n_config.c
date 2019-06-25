@@ -121,7 +121,7 @@ static int s2n_config_init(struct s2n_config *config)
         s2n_config_set_cipher_preferences(config, "default");
     }
 
-    notnull_check(config->cert_and_key_pairs = s2n_array_new(sizeof(struct s2n_cert_chain_and_key*)));
+    //notnull_check(config->cert_and_key_pairs = s2n_array_new(sizeof(struct s2n_cert_chain_and_key*)));
     notnull_check(config->domain_name_to_cert_map = s2n_map_new_with_initial_size(2));
     GUARD(s2n_map_complete(config->domain_name_to_cert_map));
     memset(&config->default_cert_per_auth_method, 0, sizeof(struct auth_method_to_cert_value));
@@ -142,7 +142,7 @@ static int s2n_config_cleanup(struct s2n_config *config)
     GUARD(s2n_config_free_cert_chain_and_key(config));
     GUARD(s2n_config_free_dhparams(config));
     GUARD(s2n_free(&config->application_protocols));
-    GUARD(s2n_array_free(config->cert_and_key_pairs));
+    //GUARD(s2n_array_free(config->cert_and_key_pairs));
     GUARD(s2n_map_free(config->domain_name_to_cert_map));
 
     return 0;
@@ -344,7 +344,9 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
     /* Free the cert_chain_and_key since the application has no reference
      * to it. This is necessary until s2n_config_add_cert_chain_and_key is deprecated. */
     if (config->cert_allocated) {
-        struct s2n_cert_chain_and_key *chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(config->cert_and_key_pairs, 0));
+        //struct s2n_cert_chain_and_key *chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(config->cert_and_key_pairs, 0));
+        //struct s2n_cert_chain_and_key *chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_fetch_single_default_cert(server_config);
+        struct s2n_cert_chain_and_key *chain_and_key = s2n_fetch_single_default_cert(config);
         GUARD(s2n_cert_chain_and_key_free(chain_and_key));
     }
 
@@ -806,4 +808,17 @@ int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_ti
 {
     config->cert_tiebreak_cb = cert_tiebreak_cb;
     return 0;
+}
+
+struct s2n_cert_chain_and_key *s2n_fetch_single_default_cert(struct s2n_config *config)
+{
+    notnull_check_ptr(config);
+    int index = -1;
+    for (int i = 0; i < S2N_AUTHENTICATION_METHOD_SENTINEL; i++) {
+        if (config->default_cert_per_auth_method.certs[i] != NULL) {
+            S2N_ERROR_IF_PTR(index >= 0, S2N_ERR_TOO_MANY_CERTIFICATES);
+            index = i;
+        }
+    }
+    return config->default_cert_per_auth_method.certs[index];
 }
