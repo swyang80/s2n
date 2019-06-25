@@ -122,7 +122,7 @@ static int s2n_config_init(struct s2n_config *config)
     }
 
     //notnull_check(config->cert_and_key_pairs = s2n_array_new(sizeof(struct s2n_cert_chain_and_key*)));
-    notnull_check(config->domain_name_to_cert_map = s2n_map_new_with_initial_size(2));
+    notnull_check(config->domain_name_to_cert_map = s2n_map_new_with_initial_size(4));
     GUARD(s2n_map_complete(config->domain_name_to_cert_map));
     memset(&config->default_cert_per_auth_method, 0, sizeof(struct auth_method_to_cert_value));
     config->default_certs_are_explicit = 0;
@@ -346,8 +346,15 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
     if (config->cert_allocated) {
         //struct s2n_cert_chain_and_key *chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(config->cert_and_key_pairs, 0));
         //struct s2n_cert_chain_and_key *chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_fetch_single_default_cert(server_config);
-        struct s2n_cert_chain_and_key *chain_and_key = s2n_fetch_single_default_cert(config);
-        GUARD(s2n_cert_chain_and_key_free(chain_and_key));
+        /*
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
+        if (s2n_fetch_single_default_cert(config, chain_and_key) > 0) {
+            GUARD(s2n_cert_chain_and_key_free(chain_and_key));
+        }
+        */
+        for (int i = 0; i < S2N_AUTHENTICATION_METHOD_SENTINEL; i++) {
+            s2n_cert_chain_and_key_free(config->default_cert_per_auth_method.certs[i]);
+        }
     }
 
     return 0;
@@ -495,13 +502,13 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
 
 int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
-    notnull_check(config->cert_and_key_pairs);
+    //notnull_check(config->cert_and_key_pairs);
     notnull_check(config->domain_name_to_cert_map);
     notnull_check(cert_key_pair);
 
-    struct s2n_cert_chain_and_key **to_insert = s2n_array_add(config->cert_and_key_pairs);
-    notnull_check(to_insert);
-    *to_insert = cert_key_pair;
+    //struct s2n_cert_chain_and_key **to_insert = s2n_array_add(config->cert_and_key_pairs);
+    //notnull_check(to_insert);
+    //*to_insert = cert_key_pair;
     GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
 
     if (!config->default_certs_are_explicit) {
@@ -632,11 +639,14 @@ int s2n_config_set_cache_delete_callback(struct s2n_config *config, s2n_cache_de
 int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length)
 {
     notnull_check(config);
-    struct s2n_array *certs = config->cert_and_key_pairs;
-    if (s2n_array_num_elements(certs) == 0) {
+    //struct s2n_array *certs = config->cert_and_key_pairs;
+    struct s2n_cert_chain_and_key *config_chain_and_key = NULL;
+    //struct s2n_cert_chain_and_key *config_chain_and_key = s2n_fetch_single_default_cert(config);
+    if (s2n_fetch_single_default_cert(config, &config_chain_and_key) == 0) {
+    //if (s2n_array_num_elements(certs) == 0) {
         S2N_ERROR(S2N_ERR_UPDATING_EXTENSION);
     }
-    struct s2n_cert_chain_and_key *config_chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(certs, 0));
+    //struct s2n_cert_chain_and_key *config_chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(certs, 0));
     notnull_check(config_chain_and_key);
 
     switch (type) {
@@ -810,15 +820,16 @@ int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_ti
     return 0;
 }
 
-struct s2n_cert_chain_and_key *s2n_fetch_single_default_cert(struct s2n_config *config)
+int s2n_fetch_single_default_cert(struct s2n_config *config, struct s2n_cert_chain_and_key **cert_and_key)
 {
-    notnull_check_ptr(config);
-    int index = -1;
-    for (int i = 0; i < S2N_AUTHENTICATION_METHOD_SENTINEL; i++) {
+    notnull_check(config);
+    uint32_t num_certs = 0;
+    for (int i = S2N_AUTHENTICATION_METHOD_SENTINEL - 1; i >= 0; i--) {
         if (config->default_cert_per_auth_method.certs[i] != NULL) {
-            S2N_ERROR_IF_PTR(index >= 0, S2N_ERR_TOO_MANY_CERTIFICATES);
-            index = i;
+            //S2N_ERROR_IF(cert_and_key != NULL, S2N_ERR_TOO_MANY_CERTIFICATES);
+            *cert_and_key = config->default_cert_per_auth_method.certs[i];
+            num_certs++;
         }
     }
-    return config->default_cert_per_auth_method.certs[index];
+    return num_certs;
 }

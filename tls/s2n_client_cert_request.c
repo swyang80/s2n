@@ -31,9 +31,11 @@ static int s2n_set_cert_chain_as_client(struct s2n_connection *conn)
 {
     //struct s2n_array *certs = conn->config->cert_and_key_pairs;
     //struct s2n_cert_chain_and_key *cert = *((struct s2n_cert_chain_and_key**) s2n_fetch_single_default_cert(conn->config));
-    struct s2n_cert_chain_and_key *cert = s2n_fetch_single_default_cert(conn->config);
+
+    //uint32_t num_certs = s2n_fetch_single_default_cert(conn->config, cert);
     //if (s2n_array_num_elements(certs) > 0) {
-    if (cert) {
+    struct s2n_cert_chain_and_key *cert = NULL;
+    if (s2n_fetch_single_default_cert(conn->config, &cert) > 0) {
         //conn->handshake_params.our_chain_and_key = *((struct s2n_cert_chain_and_key**) s2n_array_get(certs, 0));
         conn->handshake_params.our_chain_and_key = cert;
     }
