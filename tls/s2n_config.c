@@ -79,7 +79,6 @@ static struct s2n_config s2n_default_fips_config = {0};
 static int s2n_config_init(struct s2n_config *config)
 {
     config->cert_allocated = 0;
-    config->num_certs = 0;
     config->dhparams = NULL;
     memset(&config->application_protocols, 0, sizeof(config->application_protocols));
     config->status_request_type = S2N_STATUS_REQUEST_NONE;
@@ -497,7 +496,6 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct
     notnull_check(cert_key_pair);
 
     GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
-    config->num_certs++;
 
     if (!config->default_certs_are_explicit) {
         /* Attempt to auto set default based on ordering. ie: first RSA cert is the default, first ECDSA cert is the
@@ -628,7 +626,7 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
 {
     notnull_check(config);
 
-    if (config->num_certs == 0) {
+    if (s2n_get_num_of_default_certs(config) == 0) {
         S2N_ERROR(S2N_ERR_UPDATING_EXTENSION);
     }
     struct s2n_cert_chain_and_key *config_chain_and_key = s2n_fetch_single_default_cert(config);
@@ -816,4 +814,17 @@ struct s2n_cert_chain_and_key *s2n_fetch_single_default_cert(struct s2n_config *
         }
     }
     return cert;
+}
+
+int s2n_get_num_of_default_certs(struct s2n_config *config)
+{
+    notnull_check(config);
+    int num_certs = 0;
+    for (int i = 0; i < S2N_AUTHENTICATION_METHOD_SENTINEL; i++) {
+        if (config->default_cert_per_auth_method.certs[i] != NULL) {
+            num_certs++;
+        }
+    }
+
+    return num_certs;
 }

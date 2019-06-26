@@ -487,7 +487,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     }
 
     /* We only support one client certificate */
-    if (config->num_certs > 1 && conn->mode == S2N_CLIENT) {
+    if (s2n_get_num_of_default_certs(config) > 1 && conn->mode == S2N_CLIENT) {
         S2N_ERROR(S2N_ERR_TOO_MANY_CERTIFICATES);
     }
 
