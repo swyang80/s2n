@@ -79,6 +79,7 @@ static struct s2n_config s2n_default_fips_config = {0};
 static int s2n_config_init(struct s2n_config *config)
 {
     config->cert_allocated = 0;
+    config->num_certs = 0;
     config->dhparams = NULL;
     memset(&config->application_protocols, 0, sizeof(config->application_protocols));
     config->status_request_type = S2N_STATUS_REQUEST_NONE;
@@ -496,6 +497,7 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct
     notnull_check(cert_key_pair);
 
     GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
+    config->num_certs++;
 
     if (!config->default_certs_are_explicit) {
         /* Attempt to auto set default based on ordering. ie: first RSA cert is the default, first ECDSA cert is the
@@ -626,10 +628,10 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
 {
     notnull_check(config);
 
-    struct s2n_cert_chain_and_key *config_chain_and_key = NULL;
-    if (s2n_fetch_single_default_cert(config, &config_chain_and_key) == 0) {
+    if (config->num_certs == 0) {
         S2N_ERROR(S2N_ERR_UPDATING_EXTENSION);
     }
+    struct s2n_cert_chain_and_key *config_chain_and_key = s2n_fetch_single_default_cert(config);
     notnull_check(config_chain_and_key);
 
     switch (type) {
@@ -803,16 +805,15 @@ int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_ti
     return 0;
 }
 
-int s2n_fetch_single_default_cert(struct s2n_config *config, struct s2n_cert_chain_and_key **cert_and_key)
+struct s2n_cert_chain_and_key *s2n_fetch_single_default_cert(struct s2n_config *config)
 {
-    notnull_check(config);
+    notnull_check_ptr(config);
+    struct s2n_cert_chain_and_key *cert = NULL;
 
-    uint32_t num_certs = 0;
     for (int i = S2N_AUTHENTICATION_METHOD_SENTINEL - 1; i >= 0; i--) {
         if (config->default_cert_per_auth_method.certs[i] != NULL) {
-            *cert_and_key = config->default_cert_per_auth_method.certs[i];
-            num_certs++;
+            cert = config->default_cert_per_auth_method.certs[i];
         }
     }
-    return num_certs;
+    return cert;
 }
