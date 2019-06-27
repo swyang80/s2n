@@ -626,10 +626,10 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
 {
     notnull_check(config);
 
-    if (s2n_get_num_of_default_certs(config) == 0) {
+    if (s2n_config_get_num_default_certs(config) == 0) {
         S2N_ERROR(S2N_ERR_UPDATING_EXTENSION);
     }
-    struct s2n_cert_chain_and_key *config_chain_and_key = s2n_fetch_single_default_cert(config);
+    struct s2n_cert_chain_and_key *config_chain_and_key = s2n_config_get_single_default_cert(config);
     notnull_check(config_chain_and_key);
 
     switch (type) {
@@ -803,7 +803,7 @@ int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_ti
     return 0;
 }
 
-struct s2n_cert_chain_and_key *s2n_fetch_single_default_cert(struct s2n_config *config)
+struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config)
 {
     notnull_check_ptr(config);
     struct s2n_cert_chain_and_key *cert = NULL;
@@ -816,7 +816,7 @@ struct s2n_cert_chain_and_key *s2n_fetch_single_default_cert(struct s2n_config *
     return cert;
 }
 
-int s2n_get_num_of_default_certs(struct s2n_config *config)
+int s2n_config_get_num_default_certs(struct s2n_config *config)
 {
     notnull_check(config);
     int num_certs = 0;

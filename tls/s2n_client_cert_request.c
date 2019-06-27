@@ -29,8 +29,8 @@
 
 static int s2n_set_cert_chain_as_client(struct s2n_connection *conn)
 {
-    if (s2n_get_num_of_default_certs(conn->config) > 0) {
-        struct s2n_cert_chain_and_key *cert = s2n_fetch_single_default_cert(conn->config);
+    if (s2n_config_get_num_default_certs(conn->config) > 0) {
+        struct s2n_cert_chain_and_key *cert = s2n_config_get_single_default_cert(conn->config);
         notnull_check(cert);
         conn->handshake_params.our_chain_and_key = cert;
     }
